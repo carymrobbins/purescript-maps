@@ -28,6 +28,7 @@ module Data.Map
 import Prelude
 
 import Data.Foldable (foldl, foldMap, foldr, Foldable)
+import Data.Generic
 import Data.List (List(..), length, nub)
 import Data.Maybe (Maybe(..), maybe, isJust)
 import Data.Monoid (Monoid)
@@ -39,6 +40,16 @@ data Map k v
   = Leaf
   | Two (Map k v) k v (Map k v)
   | Three (Map k v) k v (Map k v) k v (Map k v)
+
+instance genericMap :: (Generic k, Ord k, Generic v) => Generic (Map k v) where
+  toSpine m = SProd "Data.Map.Map.fromList" [\u -> toSpine (toList m)]
+  toSignature m = SigProd [{sigConstructor: "Data.Map.Map.fromList", sigValues: [\u -> toSignature m]}]
+    where
+    mProxy :: Proxy (Map k v) -> Proxy (List (Tuple k v))
+    mProxy Proxy = (anyProxy :: Proxy (List (Tuple k v)))
+
+  fromSpine (SProd "Data.Map.Map.fromList" [xs]) = fromList <$> fromSpine (xs unit)
+  fromSpine _ = Nothing
 
 instance eqMap :: (Eq k, Eq v) => Eq (Map k v) where
   eq m1 m2 = toList m1 == toList m2
